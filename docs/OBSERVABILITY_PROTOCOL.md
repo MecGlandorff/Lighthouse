@@ -25,6 +25,7 @@ Each custom metric should define:
 
 - Pi-hole exporter for DNS statistics
 - node_exporter for host metrics
+- Prometheus, Alertmanager, and Grafana for service health
 - beacon for custom telemetry
 - keeper for anomaly scores
 - lookout for optional triage metrics
@@ -52,3 +53,17 @@ Dashboards should start with operational health:
 
 Security-specific panels should be added after the underlying metrics are
 stable.
+
+## Base Stack Contract
+
+Prometheus scrapes the base stack every 15 seconds with the stable jobs
+`prometheus`, `alertmanager`, `grafana`, `node`, and `pihole`.
+
+The provisioned `Lighthouse Operations` dashboard is read-only in Grafana and
+is managed from repository JSON. It shows aggregate service, DNS, and host
+health. It must not display full domains, client addresses, or device names.
+
+Initial alert thresholds are conservative: targets and DNS state wait 2
+minutes, disk pressure waits 15 minutes below 15% free, and high temperature
+waits 10 minutes above 75°C. Changes require matching rule tests and metrics
+documentation.

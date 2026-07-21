@@ -1,0 +1,62 @@
+groups:
+  - name: lighthouse-health
+    rules:
+      - alert: LighthouseTargetDown
+        expr: up{job=~"alertmanager|grafana|node|pihole|prometheus"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: '{{ $labels.job }}'
+        annotations:
+          summary: '{{ $labels.job }} target is unavailable'
+          description: >-
+            Prometheus has failed to scrape {{ $labels.instance }} for 2
+            minutes. Check the container and Compose network first.
+
+      - alert: LighthouseDNSDisabled
+        expr: pihole_status{job="pihole"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: pihole
+        annotations:
+          summary: Pi-hole DNS blocking is disabled
+          description: >-
+            Pi-hole has reported status 0 for 2 minutes. Check Pi-hole service
+            state and test a direct DNS query before changing client settings.
+
+      - alert: LighthouseRootDiskPressure
+        expr: |
+          100 * node_filesystem_avail_bytes{
+            job="node",
+            mountpoint="/",
+            fstype!~"tmpfs|overlay|squashfs"
+          }
+          /
+          node_filesystem_size_bytes{
+            job="node",
+            mountpoint="/",
+            fstype!~"tmpfs|overlay|squashfs"
+          }
+          < 15
+        for: 15m
+        labels:
+          severity: warning
+          service: host
+        annotations:
+          summary: Raspberry Pi root filesystem is below 15% free
+          description: >-
+            The root filesystem has had less than 15% available for 15
+            minutes. Check Prometheus retention and other disk consumers.
+
+      - alert: LighthouseHighTemperature
+        expr: max by (instance) (node_hwmon_temp_celsius{job="node"}) > 75
+        for: 10m
+        labels:
+          severity: warning
+          service: host
+        annotations:
+          summary: Raspberry Pi temperature is above 75 degrees Celsius
+          description: >-
+            The highest reported hardware temperature has exceeded 75 degrees
+            Celsius for 10 minutes. Check ventilation, load, and throttling.

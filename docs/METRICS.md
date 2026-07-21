@@ -30,6 +30,39 @@ Review before adding labels such as:
 Detailed labels are allowed for local development and early operation, but the
 privacy and storage impact must be documented.
 
+## Base Stack Metrics
+
+The first dashboard and alerts depend on these external metric contracts:
+
+| Metric | Type and unit | Labels used | Source | Purpose |
+| --- | --- | --- | --- | --- |
+| `up` | gauge, boolean | `job`, `instance` | Prometheus | scrape health |
+| `pihole_status` | gauge, boolean | `job`, `instance` | pihole-exporter | DNS enabled state |
+| `pihole_dns_queries_today` | gauge, queries | `job` | pihole-exporter | daily query count and short-term rate |
+| `pihole_ads_blocked_today` | gauge, queries | `job` | pihole-exporter | blocked-query percentage |
+| `node_cpu_seconds_total` | counter, seconds | `job`, `mode`, `cpu` | node_exporter | CPU use |
+| `node_memory_MemAvailable_bytes` | gauge, bytes | `job`, `instance` | node_exporter | memory use |
+| `node_memory_MemTotal_bytes` | gauge, bytes | `job`, `instance` | node_exporter | memory use |
+| `node_filesystem_avail_bytes` | gauge, bytes | `job`, `instance`, `mountpoint`, `fstype` | node_exporter | root disk use |
+| `node_filesystem_size_bytes` | gauge, bytes | `job`, `instance`, `mountpoint`, `fstype` | node_exporter | root disk use |
+| `node_hwmon_temp_celsius` | gauge, degrees Celsius | `job`, `instance`, `chip`, `sensor` | node_exporter | Pi temperature |
+
+The stable base-stack jobs are `prometheus`, `alertmanager`, `grafana`, `node`,
+and `pihole`. The target Pi must confirm the actual hwmon labels; an absent
+temperature series is treated as no data.
+
+## Base Alerts
+
+| Alert | Condition | Duration | Severity |
+| --- | --- | --- | --- |
+| `LighthouseTargetDown` | selected `up` series equals 0 | 2 minutes | warning |
+| `LighthouseDNSDisabled` | `pihole_status` equals 0 | 2 minutes | critical |
+| `LighthouseRootDiskPressure` | root filesystem below 15% available | 15 minutes | warning |
+| `LighthouseHighTemperature` | maximum hwmon temperature above 75°C | 10 minutes | warning |
+
+Base alerts use only bounded `service`, `severity`, `job`, `instance`, and host
+metric labels. They do not attach domains, clients, or DNS query details.
+
 ## Planned Custom Metrics
 
 Beacon skeleton:

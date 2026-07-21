@@ -1,0 +1,117 @@
+rule_files:
+  - ../rules/lighthouse-alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: healthy signals do not alert
+    interval: 1m
+    input_series:
+      - series: 'up{job="pihole",instance="pihole-exporter:9617"}'
+        values: '1x20'
+      - series: 'pihole_status{job="pihole",instance="pihole-exporter:9617"}'
+        values: '1x20'
+      - series: 'node_filesystem_avail_bytes{job="node",instance="node-exporter:9100",mountpoint="/",fstype="ext4"}'
+        values: '20x20'
+      - series: 'node_filesystem_size_bytes{job="node",instance="node-exporter:9100",mountpoint="/",fstype="ext4"}'
+        values: '100x20'
+      - series: 'node_hwmon_temp_celsius{job="node",instance="node-exporter:9100",chip="thermal_thermal_zone0",sensor="temp0"}'
+        values: '60x20'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: LighthouseTargetDown
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: LighthouseDNSDisabled
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: LighthouseRootDiskPressure
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: LighthouseHighTemperature
+        exp_alerts: []
+
+  - name: target down fires after two minutes
+    interval: 1m
+    input_series:
+      - series: 'up{job="grafana",instance="grafana:3000"}'
+        values: '1 0x3'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: LighthouseTargetDown
+        exp_alerts:
+          - exp_labels:
+              instance: grafana:3000
+              job: grafana
+              service: grafana
+              severity: warning
+            exp_annotations:
+              summary: grafana target is unavailable
+              description: >-
+                Prometheus has failed to scrape grafana:3000 for 2 minutes.
+                Check the container and Compose network first.
+
+  - name: disabled DNS fires after two minutes
+    interval: 1m
+    input_series:
+      - series: 'pihole_status{job="pihole",instance="pihole-exporter:9617"}'
+        values: '1 0x3'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: LighthouseDNSDisabled
+        exp_alerts:
+          - exp_labels:
+              instance: pihole-exporter:9617
+              job: pihole
+              service: pihole
+              severity: critical
+            exp_annotations:
+              summary: Pi-hole DNS blocking is disabled
+              description: >-
+                Pi-hole has reported status 0 for 2 minutes. Check Pi-hole
+                service state and test a direct DNS query before changing
+                client settings.
+
+  - name: disk pressure fires after fifteen minutes
+    interval: 1m
+    input_series:
+      - series: 'node_filesystem_avail_bytes{job="node",instance="node-exporter:9100",mountpoint="/",fstype="ext4"}'
+        values: '14x17'
+      - series: 'node_filesystem_size_bytes{job="node",instance="node-exporter:9100",mountpoint="/",fstype="ext4"}'
+        values: '100x17'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: LighthouseRootDiskPressure
+        exp_alerts:
+          - exp_labels:
+              fstype: ext4
+              instance: node-exporter:9100
+              job: node
+              mountpoint: /
+              service: host
+              severity: warning
+            exp_annotations:
+              summary: Raspberry Pi root filesystem is below 15% free
+              description: >-
+                The root filesystem has had less than 15% available for 15
+                minutes. Check Prometheus retention and other disk consumers.
+
+  - name: high temperature fires after ten minutes
+    interval: 1m
+    input_series:
+      - series: 'node_hwmon_temp_celsius{job="node",instance="node-exporter:9100",chip="thermal_thermal_zone0",sensor="temp0"}'
+        values: '76x12'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: LighthouseHighTemperature
+        exp_alerts:
+          - exp_labels:
+              instance: node-exporter:9100
+              service: host
+              severity: warning
+            exp_annotations:
+              summary: Raspberry Pi temperature is above 75 degrees Celsius
+              description: >-
+                The highest reported hardware temperature has exceeded 75
+                degrees Celsius for 10 minutes. Check ventilation, load, and
+                throttling.
