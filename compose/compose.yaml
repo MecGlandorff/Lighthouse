@@ -1,0 +1,132 @@
+name: lighthouse
+
+services:
+  pihole:
+    image: pihole/pihole:2026.07.2
+    hostname: pihole
+    environment:
+      TZ: ${TZ:-Europe/Paris}
+      FTLCONF_webserver_api_password: ${PIHOLE_ADMIN_PASSWORD:?set PIHOLE_ADMIN_PASSWORD in compose/.env}
+      FTLCONF_dns_listeningMode: ALL
+      FTLCONF_dns_upstreams: ${PIHOLE_UPSTREAMS:-9.9.9.9;149.112.112.112}
+      FTLCONF_database_maxDBdays: "30"
+    ports:
+      - "${LIGHTHOUSE_LAN_BIND:-0.0.0.0}:53:53/tcp"
+      - "${LIGHTHOUSE_LAN_BIND:-0.0.0.0}:53:53/udp"
+      - "${LIGHTHOUSE_LAN_BIND:-0.0.0.0}:${PIHOLE_WEB_PORT:-8080}:80/tcp"
+    volumes:
+      - ./data/pihole:/etc/pihole
+    networks:
+      - lighthouse
+    restart: unless-stopped
+
+  pihole-exporter:
+    image: ekofr/pihole-exporter:v1.0.0
+    environment:
+      PIHOLE_HOSTNAME: pihole
+      PIHOLE_PROTOCOL: http
+      PIHOLE_PORT: "80"
+      PIHOLE_PASSWORD: ${PIHOLE_ADMIN_PASSWORD:?set PIHOLE_ADMIN_PASSWORD in compose/.env}
+      PORT: "9617"
+    depends_on:
+      pihole:
+        condition: service_started
+    networks:
+      - lighthouse
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.11.1
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - '--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/containers/storage/.+)($$|/)'
+    pid: host
+    volumes:
+      - type: bind
+        source: /proc
+        target: /host/proc
+        read_only: true
+      - type: bind
+        source: /sys
+        target: /host/sys
+        read_only: true
+      - type: bind
+        source: /
+        target: /rootfs
+        read_only: true
+        bind:
+          propagation: rslave
+    networks:
+      - lighthouse
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.13.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=5GB
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090/tcp"
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    networks:
+      - lighthouse
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.32.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    ports:
+      - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093/tcp"
+    volumes:
+      - ../alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    secrets:
+      - ntfy_webhook_url
+      - ntfy_token
+    networks:
+      - lighthouse
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.1.1
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in compose/.env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    ports:
+      - "${LIGHTHOUSE_LAN_BIND:-0.0.0.0}:${GRAFANA_PORT:-3000}:3000/tcp"
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_started
+    networks:
+      - lighthouse
+    restart: unless-stopped
+
+networks:
+  lighthouse:
+    name: lighthouse
+
+volumes:
+  prometheus-data:
+  alertmanager-data:
+  grafana-data:
+
+secrets:
+  ntfy_webhook_url:
+    file: ./secrets/ntfy_webhook_url
+  ntfy_token:
+    file: ./secrets/ntfy_token

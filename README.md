@@ -21,7 +21,9 @@ Later:
 
 ## Current Status
 
-Scaffold only. No runtime services are implemented yet.
+The pinned base stack, operational dashboard, baseline alerts, and ntfy route
+are implemented. Raspberry Pi deployment validation is still required before
+household clients use Lighthouse for DNS.
 
 ## Design Rule
 
@@ -47,10 +49,10 @@ or receives mirrored traffic.
 - `lookout/`: planned LLM-assisted triage service
 - `docs/`: coding, observability, retention, and task docs
 
-## Next Milestone
+## Current Milestone
 
-Milestone 1 builds the base stack with Pi-hole, Prometheus, Grafana,
-Alertmanager, node_exporter, and pihole-exporter.
+Milestone 1 builds and validates the base stack with Pi-hole, Prometheus,
+Grafana, Alertmanager, node_exporter, and pihole-exporter.
 
 The first alert route is ntfy. The initial local retention target is 30 days for
 Prometheus data and DNS query history where supported by the installed Pi-hole

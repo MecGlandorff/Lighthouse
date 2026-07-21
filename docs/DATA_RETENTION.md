@@ -30,8 +30,19 @@ Initial retention targets:
 - Triage summaries: local only, target 30 days if lookout is enabled
 - Grafana dashboards: repository-managed, no exported data snapshots by default
 
-The exact Pi-hole retention setting must be verified against the installed
-Pi-hole version during Phase 1.
+The Compose configuration requests 30 days of Pi-hole history through
+`FTLCONF_database_maxDBdays` and bounds Prometheus by both 30 days and 5 GB.
+Both settings must be confirmed on the target Pi during Phase 1.
+
+pihole-exporter may expose top-domain and top-client series. Prometheus stores
+all exported series locally even though the initial dashboard and alerts use
+only aggregates. Revisit metric relabeling before any remote-write integration
+or longer retention period is introduced.
+
+Hosted ntfy receives the labels and annotations of firing and resolved alerts.
+Its retention is outside Lighthouse's local retention controls. Base alert
+content is therefore restricted to service identity, thresholds, and aggregate
+host health; it must not contain DNS queries, domains, or client identifiers.
 
 ## Retention Decisions
 

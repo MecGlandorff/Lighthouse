@@ -2,8 +2,9 @@
 
 ## Scope
 
-This document defines the deployment path for the Raspberry Pi. It is a protocol
-for future implementation, not a completed setup.
+This document defines the deployment path for the Raspberry Pi. The base-stack
+configuration exists, but a deployment is not complete until the checks below
+have been run on the target Pi.
 
 ## Base Assumptions
 
@@ -34,6 +35,23 @@ Use local env files or host-level secret storage for:
 6. Test one client with the Pi as DNS.
 7. Move router DHCP DNS to the Pi only after single-client testing works.
 
+## Preflight
+
+Before starting the stack:
+
+1. Confirm the Pi has a stable LAN address and key-based SSH still works.
+2. Confirm TCP and UDP port 53 and TCP ports 8080 and 3000 are unused.
+3. Copy `compose/.env.example` to `compose/.env`, set distinct strong Pi-hole
+   and Grafana passwords, set the private ntfy topic and publish token, and set
+   mode `0600`.
+4. Create `compose/data/pihole/` and include it in the local backup plan.
+5. Run `./compose/render-ntfy-secrets.sh`; confirm the generated directory is
+   mode `0700` and remains ignored by git.
+6. Run `docker compose --env-file compose/.env -f compose/compose.yaml config`.
+
+The stack does not run DHCP. Do not publish UDP port 67 or grant Pi-hole
+`NET_ADMIN` for this milestone.
+
 ## Validation
 
 For Compose changes:
@@ -48,7 +66,11 @@ After deployment, verify:
 - Prometheus can query Pi-hole and host metrics
 - Grafana can query Prometheus
 - Alertmanager can send an ntfy test alert
+- both firing and resolved ntfy test notifications arrive
 - a client can bypass Lighthouse if needed
+
+Prometheus and Alertmanager listen only on the Pi's loopback interface. Use an
+SSH tunnel when their web interfaces are needed.
 
 ## Rollback
 
@@ -60,3 +82,12 @@ Before DNS changes, know at least one rollback path:
 - keep SSH access independent of DNS where possible
 
 Do not deploy enforcement until rollback has been tested.
+
+Stopping the stack for rollback must preserve data:
+
+```bash
+docker compose --env-file compose/.env -f compose/compose.yaml down
+```
+
+Do not use `down --volumes` unless permanent data deletion is explicitly
+intended and backups have been checked.

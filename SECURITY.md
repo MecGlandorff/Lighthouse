@@ -53,6 +53,15 @@ continuous logs, or private host inventory to a cloud LLM by default.
 
 The first supported phone-alert path is ntfy through Alertmanager.
 
+The hosted ntfy route sends alert labels and annotations outside the home
+network. Base alerts contain service and aggregate host-health context only.
+Do not add client addresses, domains, DNS queries, device names, secrets, or
+private inventory to alert labels or annotations.
+
+The ntfy topic, publish token, and rendered webhook URL are secrets. Keep their
+source values in the ignored local env file and generated values under the
+ignored `compose/secrets/` directory.
+
 Telegram and Pushover are optional later integrations. Do not add them until
 ntfy is working or there is a clear reason to choose a different route.
 
