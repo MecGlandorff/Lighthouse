@@ -17,9 +17,12 @@ Run these commands from the repository root on the Pi:
 cp compose/.env.example compose/.env
 chmod 600 compose/.env
 mkdir -p compose/data/pihole
+chmod +x compose/render-ntfy-secrets.sh
+./compose/render-ntfy-secrets.sh
 ```
 
-Replace both password placeholders in `compose/.env`. Do not commit that file.
+Replace both password placeholders and the ntfy placeholders in `compose/.env`
+before rendering secrets. Do not commit the env file or generated secrets.
 
 Validate and start the stack:
 

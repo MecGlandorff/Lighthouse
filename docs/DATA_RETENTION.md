@@ -39,6 +39,11 @@ all exported series locally even though the initial dashboard and alerts use
 only aggregates. Revisit metric relabeling before any remote-write integration
 or longer retention period is introduced.
 
+Hosted ntfy receives the labels and annotations of firing and resolved alerts.
+Its retention is outside Lighthouse's local retention controls. Base alert
+content is therefore restricted to service identity, thresholds, and aggregate
+host health; it must not contain DNS queries, domains, or client identifiers.
+
 ## Retention Decisions
 
 Before long-running deployment, choose:

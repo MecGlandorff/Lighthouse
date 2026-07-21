@@ -21,8 +21,9 @@ Later:
 
 ## Current Status
 
-The pinned base-stack configuration is implemented. Raspberry Pi deployment
-validation is still required before household clients use Lighthouse for DNS.
+The pinned base stack, operational dashboard, baseline alerts, and ntfy route
+are implemented. Raspberry Pi deployment validation is still required before
+household clients use Lighthouse for DNS.
 
 ## Design Rule
 

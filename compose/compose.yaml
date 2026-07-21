@@ -89,6 +89,9 @@ services:
     volumes:
       - ../alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager-data:/alertmanager
+    secrets:
+      - ntfy_webhook_url
+      - ntfy_token
     networks:
       - lighthouse
     restart: unless-stopped
@@ -121,3 +124,9 @@ volumes:
   prometheus-data:
   alertmanager-data:
   grafana-data:
+
+secrets:
+  ntfy_webhook_url:
+    file: ./secrets/ntfy_webhook_url
+  ntfy_token:
+    file: ./secrets/ntfy_token

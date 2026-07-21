@@ -81,3 +81,17 @@ requires preserving it.
 Container versions are pinned in `compose/compose.yaml`. Upgrade one image at a
 time in a reviewed commit, retain the previous tag for rollback, validate the
 rendered Compose file, then inspect logs after recreation.
+
+## ntfy Credential Rotation
+
+Update `NTFY_TOPIC` or `NTFY_TOKEN` only in `compose/.env`, then run:
+
+```bash
+./compose/render-ntfy-secrets.sh
+docker compose --env-file compose/.env -f compose/compose.yaml up -d \
+  --force-recreate alertmanager
+```
+
+Confirm a firing and resolved test notification after rotation. Generated ntfy
+secret files are local deployment state and must not be committed or included
+in general repository backups.

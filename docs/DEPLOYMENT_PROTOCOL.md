@@ -42,9 +42,12 @@ Before starting the stack:
 1. Confirm the Pi has a stable LAN address and key-based SSH still works.
 2. Confirm TCP and UDP port 53 and TCP ports 8080 and 3000 are unused.
 3. Copy `compose/.env.example` to `compose/.env`, set distinct strong Pi-hole
-   and Grafana passwords, and set mode `0600`.
+   and Grafana passwords, set the private ntfy topic and publish token, and set
+   mode `0600`.
 4. Create `compose/data/pihole/` and include it in the local backup plan.
-5. Run `docker compose --env-file compose/.env -f compose/compose.yaml config`.
+5. Run `./compose/render-ntfy-secrets.sh`; confirm the generated directory is
+   mode `0700` and remains ignored by git.
+6. Run `docker compose --env-file compose/.env -f compose/compose.yaml config`.
 
 The stack does not run DHCP. Do not publish UDP port 67 or grant Pi-hole
 `NET_ADMIN` for this milestone.
@@ -63,6 +66,7 @@ After deployment, verify:
 - Prometheus can query Pi-hole and host metrics
 - Grafana can query Prometheus
 - Alertmanager can send an ntfy test alert
+- both firing and resolved ntfy test notifications arrive
 - a client can bypass Lighthouse if needed
 
 Prometheus and Alertmanager listen only on the Pi's loopback interface. Use an
